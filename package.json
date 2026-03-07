@@ -1,0 +1,37 @@
+{
+  "name": "cicd-pipeline-lambda",
+  "version": "1.0.0",
+  "description": "Node.js AWS Lambda application with GitHub Actions CI/CD pipeline",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "mkdir -p dist && cp -r src/* dist/",
+    "lint": "eslint src/**/*.js",
+    "test": "jest --coverage",
+    "test:ci": "jest --coverage --ci --forceExit",
+    "audit:fix": "npm audit fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.21.0",
+    "@eslint/js": "^9.21.0",
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    }
+  }
+}
