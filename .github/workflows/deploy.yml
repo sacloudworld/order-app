@@ -1,9 +1,12 @@
-name: Deploy to AWS Lambda
+name: Deploy Order App to AWS
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build - Order App CI/CD Pipeline"]
     branches:
       - main
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
@@ -11,30 +14,19 @@ jobs:
     name: Deploy
     runs-on: ubuntu-24.04
     environment: production
+    # Only deploy when the build workflow completed successfully
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v6
+      - name: Download Lambda artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          name: order-app-${{ github.event.workflow_run.head_sha || github.sha }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install production dependencies
-        run: npm ci --omit=dev
-
-      - name: Run build
-        run: npm run build
-
-      - name: Package Lambda artifact
-        run: |
-          cd dist
-          zip -r ../lambda-artifact.zip .
-          cd ..
-          zip -r lambda-artifact.zip node_modules
-          echo "Artifact size: $(du -sh lambda-artifact.zip | cut -f1)"
+      - name: Verify artifact
+        run: echo "Artifact size: $(du -sh order-app.zip | cut -f1)"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -47,7 +39,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
-            --zip-file fileb://lambda-artifact.zip
+            --zip-file fileb://order-app.zip
 
       - name: Wait for Lambda update to complete
         run: |
