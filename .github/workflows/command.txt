@@ -1,0 +1,2 @@
+gh api repos/sacloudworld/order-app/actions/artifacts --jq '.artifacts[] | select(.name | startswith("build-artifact-")) | {name: .name, created: .created_at, expires: .expires_at, size_mb: (.size_in_bytes / 1048576 | round)}'
+

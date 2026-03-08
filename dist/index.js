@@ -28,7 +28,7 @@ const buildResponse = (statusCode, body) => ({
 const handler = async (event, context) => {
   try {
     // eslint-disable-next-line no-console
-    console.log('Event received - 1.0.0:', JSON.stringify(event, null, 2));
+    console.log('Event received - 1.0.2:', JSON.stringify(event, null, 2));
     // eslint-disable-next-line no-console
     console.log('Request ID:', context.awsRequestId);
 

@@ -1,4 +1,4 @@
-name: CI
+name: Order App CI/CD Pipeline
 
 on:
   push:
@@ -64,7 +64,7 @@ jobs:
           retention-days: 7
 
   build:
-    name: Build
+    name: Build ${steps.get_version.outputs.version}
     runs-on: ubuntu-24.04
     needs: test
     steps:
@@ -98,7 +98,7 @@ jobs:
 
   security-scan:
     name: Security Scan (npm audit)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     steps:
       - name: Checkout code
@@ -115,3 +115,24 @@ jobs:
 
       - name: Run npm audit
         run: npm audit --audit-level=high
+
+  all-checks-pass:
+    name: All Checks Pass
+    runs-on: ubuntu-24.04
+    needs: [lint, test, build, security-scan]
+    if: always()
+    steps:
+      - name: Verify all jobs passed
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" || \
+                "${{ needs.test.result }}" != "success" || \
+                "${{ needs.build.result }}" != "success" || \
+                "${{ needs.security-scan.result }}" != "success" ]]; then
+            echo "❌ One or more required checks failed."
+            echo "  lint:          ${{ needs.lint.result }}"
+            echo "  test:          ${{ needs.test.result }}"
+            echo "  build:         ${{ needs.build.result }}"
+            echo "  security-scan: ${{ needs.security-scan.result }}"
+            exit 1
+          fi
+          echo "✅ All checks passed — PR is ready to merge."
