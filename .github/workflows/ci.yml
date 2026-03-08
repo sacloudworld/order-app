@@ -65,7 +65,6 @@ jobs:
 
   build:
     name: Build ${steps.get_version.outputs.version}
-    id: build
     runs-on: ubuntu-24.04
     needs: test
     steps:
