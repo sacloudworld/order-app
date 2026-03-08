@@ -1,0 +1,138 @@
+name: Order App CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "sacloudworld"
+          git config --global user.email "sacloudworld@users.noreply.github.com"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test:
+    name: Unit Tests (Jest)
+    runs-on: ubuntu-24.04
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: Build ${steps.get_version.outputs.version}
+    runs-on: ubuntu-24.04
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run build
+        run: npm run build
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifact-${{ steps.get_version.outputs.version }}
+          path: dist/
+          retention-days: 30
+
+  security-scan:
+    name: Security Scan (npm audit)
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+  all-checks-pass:
+    name: All Checks Pass
+    runs-on: ubuntu-24.04
+    needs: [lint, test, build, security-scan]
+    if: always()
+    steps:
+      - name: Verify all jobs passed
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" || \
+                "${{ needs.test.result }}" != "success" || \
+                "${{ needs.build.result }}" != "success" || \
+                "${{ needs.security-scan.result }}" != "success" ]]; then
+            echo "❌ One or more required checks failed."
+            echo "  lint:          ${{ needs.lint.result }}"
+            echo "  test:          ${{ needs.test.result }}"
+            echo "  build:         ${{ needs.build.result }}"
+            echo "  security-scan: ${{ needs.security-scan.result }}"
+            exit 1
+          fi
+          echo "✅ All checks passed — PR is ready to merge."
