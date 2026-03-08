@@ -83,12 +83,18 @@ jobs:
       - name: Run build
         run: npm run build
 
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v6
         with:
-          name: build-artifact
+          name: build-artifact-${{ steps.get_version.outputs.version }}
           path: dist/
-          retention-days: 1
+          retention-days: 30
 
   security-scan:
     name: Security Scan (npm audit)
