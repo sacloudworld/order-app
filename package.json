@@ -1,6 +1,6 @@
 {
   "name": "cicd-pipeline-lambda",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Node.js AWS Lambda application with GitHub Actions CI/CD pipeline",
   "main": "src/index.js",
   "engines": {

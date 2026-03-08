@@ -1,4 +1,4 @@
-name: CI
+name: Order App CI/CD Pipeline
 
 on:
   push:
@@ -64,7 +64,8 @@ jobs:
           retention-days: 7
 
   build:
-    name: Build
+    name: Build ${steps.get_version.outputs.version}
+    id: build
     runs-on: ubuntu-24.04
     needs: test
     steps:
